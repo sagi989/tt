@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="he" class="h-full" dir="rtl">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>תפזורת פרשות</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+        body {
+            direction: rtl;
+        }
+        .word-box {
+            transition: all 0.3s ease;
+        }
+        .word-box:hover {
+            transform: scale(1.05);
+        }
+        .word-box.found {
+            background-color: #d1fae5 !important;
+            opacity: 0.5;
+        }
+    </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-gradient-to-br from-blue-50 to-indigo-100">
+  <div class="h-full w-full flex flex-col items-center justify-center p-6 overflow-auto">
+   <div class="max-w-2xl w-full">
+    <!-- Header -->
+    <div class="text-center mb-8">
+     <h1 class="text-4xl font-bold text-indigo-900 mb-2">תפזורת פרשות - חומש שמות</h1>
+     <p class="text-gray-600">מצא את שמות כל הפרשות שמופיעות בטבלה</p>
+    </div><!-- Grid -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+     <div id="grid" class="grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));">
+      <!-- Will be populated by JavaScript -->
+     </div>
+    </div><!-- Word List -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+     <h2 class="text-lg font-semibold text-indigo-900 mb-3">המילים שעליך למצוא:</h2>
+     <div id="wordList" class="grid grid-cols-2 gap-3 text-sm md:text-base">
+      <!-- Will be populated by JavaScript -->
+     </div>
+    </div><!-- Info -->
+    <div class="text-center">
+     <p id="progress" class="text-lg font-semibold text-indigo-900 mb-3">מצאת: <span id="found">0</span> מתוך <span id="total">0</span></p><button onclick="location.reload()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition"> משחק חדש </button>
+    </div>
+   </div>
+  </div>
+  <script>
+        const parshiyot = [
+            'שמות', 'וארא', 'בא', 'בשלח', 'יתרו',
+            'משפטים', 'תרומה', 'תצוה', 'כי תישא', 'ויקהל',
+            'פקודי'
+        ];
+
+        const uniqueParshiyot = [...new Set(parshiyot)];
+        const allLetters = 'אבגדהוזחטיכלמנסעפצקרשת';
+        let grid = [];
+        let gridSize = 10;
+
+        // Initialize grid with random letters
+        function initGrid() {
+            grid = [];
+            for (let i = 0; i < gridSize * gridSize; i++) {
+                grid.push(allLetters[Math.floor(Math.random() * allLetters.length)]);
+            }
+
+            // Place words in grid
+            uniqueParshiyot.forEach(word => {
+                let placed = false;
+                let attempts = 0;
+                while (!placed && attempts < 50) {
+                    const row = Math.floor(Math.random() * gridSize);
+                    const col = Math.floor(Math.random() * gridSize);
+                    const direction = Math.random() > 0.5 ? 'h' : 'v';
+
+                    if (canPlaceWord(word, row, col, direction)) {
+                        placeWord(word, row, col, direction);
+                        placed = true;
+                    }
+                    attempts++;
+                }
+            });
+        }
+
+        function canPlaceWord(word, row, col, direction) {
+            if (direction === 'h') {
+                if (col + word.length > gridSize) return false;
+            } else {
+                if (row + word.length > gridSize) return false;
+            }
+            return true;
+        }
+
+        function placeWord(word, row, col, direction) {
+            for (let i = 0; i < word.length; i++) {
+                const index = direction === 'h' 
+                    ? row * gridSize + (col + i)
+                    : (row + i) * gridSize + col;
+                grid[index] = word[i];
+            }
+        }
+
+        function renderGrid() {
+            const gridEl = document.getElementById('grid');
+            gridEl.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            gridEl.innerHTML = '';
+
+            grid.forEach((letter, index) => {
+                const box = document.createElement('div');
+                box.className = 'word-box bg-indigo-100 border-2 border-indigo-300 rounded flex items-center justify-center font-bold text-lg cursor-pointer h-12 hover:bg-indigo-200';
+                box.textContent = letter;
+                box.dataset.index = index;
+                box.onclick = () => selectBox(index, box);
+                gridEl.appendChild(box);
+            });
+        }
+
+        function renderWordList() {
+            const listEl = document.getElementById('wordList');
+            listEl.innerHTML = '';
+            uniqueParshiyot.forEach(word => {
+                const span = document.createElement('span');
+                span.id = 'word-' + word;
+                span.className = 'px-3 py-2 bg-blue-100 text-blue-900 rounded font-semibold';
+                span.textContent = word;
+                listEl.appendChild(span);
+            });
+        }
+
+        let selectedIndices = [];
+
+        function selectBox(index, box) {
+            if (box.classList.contains('found')) return;
+
+            if (selectedIndices.includes(index)) {
+                selectedIndices = selectedIndices.filter(i => i !== index);
+                box.classList.remove('bg-indigo-600');
+                box.classList.add('bg-indigo-100');
+            } else {
+                selectedIndices.push(index);
+                box.classList.remove('bg-indigo-100');
+                box.classList.add('bg-indigo-600', 'text-white');
+                checkWord();
+            }
+        }
+
+        function checkWord() {
+            const word = selectedIndices.map(i => grid[i]).join('');
+            const reverseWord = word.split('').reverse().join('');
+
+            if (uniqueParshiyot.includes(word)) {
+                markFound(word);
+            } else if (uniqueParshiyot.includes(reverseWord)) {
+                markFound(reverseWord);
+            } else if (selectedIndices.length > 5) {
+                resetSelection();
+            }
+        }
+
+        function markFound(word) {
+            selectedIndices.forEach(index => {
+                const box = document.querySelector(`[data-index="${index}"]`);
+                box.classList.add('found');
+            });
+
+            const wordEl = document.getElementById('word-' + word);
+            if (wordEl) wordEl.classList.add('line-through');
+
+            updateProgress();
+            selectedIndices = [];
+        }
+
+        function resetSelection() {
+            selectedIndices.forEach(index => {
+                const box = document.querySelector(`[data-index="${index}"]`);
+                box.classList.remove('bg-indigo-600', 'text-white');
+                box.classList.add('bg-indigo-100');
+            });
+            selectedIndices = [];
+        }
+
+        function updateProgress() {
+            const found = document.querySelectorAll('.word-box.found').length;
+            const total = uniqueParshiyot.length * 3;
+            document.getElementById('found').textContent = Math.floor(found / 3);
+            document.getElementById('total').textContent = uniqueParshiyot.length;
+        }
+
+        // Initialize
+        initGrid();
+        renderGrid();
+        renderWordList();
+        document.getElementById('total').textContent = uniqueParshiyot.length;
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9db18f78c7b13120',t:'MTc3MzMwNTUyMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
